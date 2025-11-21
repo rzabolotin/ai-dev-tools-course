@@ -12,30 +12,37 @@
                     {% csrf_token %}
 
                     <div class="mb-4">
-                        <label for="title"
+                        <label for="{{ form.title.id_for_label }}"
                             class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Title</label>
-                        <input type="text"
-                            class="form-control form-control-lg bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
-                            id="title" name="title" value="{{ task.title|default:'' }}" required
-                            placeholder="What needs to be done?">
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.title.errors|striptags }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-4">
-                        <label for="description"
+                        <label for="{{ form.description.id_for_label }}"
                             class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Description</label>
-                        <textarea
-                            class="form-control bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
-                            id="description" name="description" rows="4"
-                            placeholder="Add details...">{{ task.description|default:'' }}</textarea>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.description.errors|striptags }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-4">
-                        <label for="due_date"
+                        <label for="{{ form.due_date.id_for_label }}"
                             class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Due
                             Date</label>
-                        <input type="date"
-                            class="form-control bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
-                            id="due_date" name="due_date" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.due_date.errors|striptags }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="d-flex gap-3 pt-3">

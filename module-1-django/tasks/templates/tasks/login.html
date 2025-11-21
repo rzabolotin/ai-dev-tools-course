@@ -14,12 +14,6 @@
                     <p class="text-secondary">Please login to continue</p>
                 </div>
 
-                {% if error %}
-                <div class="alert alert-danger d-flex align-items-center rounded-3 mb-4" role="alert">
-                    <i class="bi bi-exclamation-circle-fill me-2"></i>
-                    <div>{{ error }}</div>
-                </div>
-                {% endif %}
 
                 <form method="post">
                     {% csrf_token %}
