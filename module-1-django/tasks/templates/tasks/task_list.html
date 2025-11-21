@@ -1,0 +1,33 @@
+{% extends 'tasks/base.html' %}
+
+{% block content %}
+<a href="{% url 'task_create' %}" class="btn btn-primary">Add New Task</a>
+
+<ul class="task-list">
+    {% for task in tasks %}
+    <li class="task-item {% if task.is_done %}done{% endif %}">
+        <div class="task-info">
+            <div class="task-title">{{ task.title }}</div>
+            {% if task.description %}
+            <div class="task-meta">{{ task.description }}</div>
+            {% endif %}
+            {% if task.due_date %}
+            <div class="task-meta">Due: {{ task.due_date }}</div>
+            {% endif %}
+        </div>
+        <div class="task-actions">
+            <form action="{% url 'task_toggle' task.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn {% if task.is_done %}btn-secondary{% else %}btn-success{% endif %}">
+                    {% if task.is_done %}Undo{% else %}Done{% endif %}
+                </button>
+            </form>
+            <a href="{% url 'task_edit' task.pk %}" class="btn btn-primary">Edit</a>
+            <a href="{% url 'task_delete' task.pk %}" class="btn btn-danger">Delete</a>
+        </div>
+    </li>
+    {% empty %}
+    <li class="task-item">No tasks yet. Create one!</li>
+    {% endfor %}
+</ul>
+{% endblock %}
