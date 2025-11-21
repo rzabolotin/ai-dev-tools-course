@@ -100,10 +100,31 @@
             display: flex;
             gap: 10px;
         }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            font-size: 14px;
+            color: #666;
+        }
+        .user-info a {
+            color: #007bff;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <h1>TODO App</h1>
+    <div class="header">
+        <h1>TODO App</h1>
+        {% if user.is_authenticated %}
+        <div class="user-info">
+            {{ user.username }} | <a href="{% url 'logout' %}">Logout</a>
+        </div>
+        {% endif %}
+    </div>
     {% block content %}{% endblock %}
 </body>
 </html>

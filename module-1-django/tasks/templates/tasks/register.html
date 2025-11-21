@@ -1,0 +1,44 @@
+{% extends 'tasks/base.html' %}
+
+{% block content %}
+<h2>Register</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+        <small style="color: #666;">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+    </div>
+
+    <div class="form-group">
+        <label for="password1">Password</label>
+        <input type="password" id="password1" name="password1" required>
+    </div>
+
+    <div class="form-group">
+        <label for="password2">Password confirmation</label>
+        <input type="password" id="password2" name="password2" required>
+    </div>
+
+    {% if form.errors %}
+    <div style="color: red; margin-bottom: 15px;">
+        {% for field in form %}
+            {% for error in field.errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Register</button>
+    </div>
+</form>
+
+<p style="margin-top: 20px;">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+{% endblock %}
