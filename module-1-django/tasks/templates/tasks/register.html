@@ -1,44 +1,107 @@
 {% extends 'tasks/base.html' %}
 
 {% block content %}
-<h2>Register</h2>
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                        style="width: 64px; height: 64px;">
+                        <i class="bi bi-person-plus-fill fs-2"></i>
+                    </div>
+                    <h2 class="fw-bold text-gray-800">Create Account</h2>
+                    <p class="text-secondary">Join us to start managing your tasks</p>
+                </div>
 
-<form method="post">
-    {% csrf_token %}
+                {% if form.errors %}
+                <div class="alert alert-danger rounded-3 mb-4" role="alert">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        <strong>Please correct the errors below:</strong>
+                    </div>
+                    <ul class="mb-0 ps-3 small">
+                        {% for field in form %}
+                        {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
 
-    <div class="form-group">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required>
-        <small style="color: #666;">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</small>
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="username"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-person"></i></span>
+                            <input type="text"
+                                class="form-control form-control-lg bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                id="username" name="username" required placeholder="Choose a username">
+                        </div>
+                        <div class="form-text text-xs mt-1"><i class="bi bi-info-circle me-1"></i>Letters, digits and
+                            @/./+/-/_ only.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password1"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-lock"></i></span>
+                            <input type="password"
+                                class="form-control form-control-lg bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                id="password1" name="password1" required placeholder="Create a password">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password2"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Confirm
+                            Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-lock-fill"></i></span>
+                            <input type="password"
+                                class="form-control form-control-lg bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                                id="password2" name="password2" required placeholder="Confirm your password">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="btn btn-success w-100 py-3 fw-bold rounded-pill shadow-sm hover:shadow-md transition-all mb-3">
+                        Register
+                    </button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="text-secondary mb-0">Already have an account? <a href="{% url 'login' %}"
+                            class="text-success fw-bold text-decoration-none">Login here</a></p>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="form-group">
-        <label for="password1">Password</label>
-        <input type="password" id="password1" name="password1" required>
-    </div>
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
 
-    <div class="form-group">
-        <label for="password2">Password confirmation</label>
-        <input type="password" id="password2" name="password2" required>
-    </div>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-    {% if form.errors %}
-    <div style="color: red; margin-bottom: 15px;">
-        {% for field in form %}
-            {% for error in field.errors %}
-                <p>{{ error }}</p>
-            {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <p>{{ error }}</p>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Register</button>
-    </div>
-</form>
-
-<p style="margin-top: 20px;">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 {% endblock %}

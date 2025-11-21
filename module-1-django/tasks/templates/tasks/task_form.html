@@ -1,29 +1,74 @@
 {% extends 'tasks/base.html' %}
 
 {% block content %}
-<h2>{{ action }} Task</h2>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <h2 class="fw-bold text-primary mb-0">{{ action }} Task</h2>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
 
-<form method="post">
-    {% csrf_token %}
+                    <div class="mb-4">
+                        <label for="title"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Title</label>
+                        <input type="text"
+                            class="form-control form-control-lg bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                            id="title" name="title" value="{{ task.title|default:'' }}" required
+                            placeholder="What needs to be done?">
+                    </div>
 
-    <div class="form-group">
-        <label for="title">Title</label>
-        <input type="text" id="title" name="title" value="{{ task.title|default:'' }}" required>
+                    <div class="mb-4">
+                        <label for="description"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Description</label>
+                        <textarea
+                            class="form-control bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                            id="description" name="description" rows="4"
+                            placeholder="Add details...">{{ task.description|default:'' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="due_date"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Due
+                            Date</label>
+                        <input type="date"
+                            class="form-control bg-light border-0 focus:ring-2 focus:ring-indigo-500 transition-all"
+                            id="due_date" name="due_date" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
+                    </div>
+
+                    <div class="d-flex gap-3 pt-3">
+                        <button type="submit"
+                            class="btn btn-primary px-4 py-2 fw-medium rounded-pill shadow-sm hover:shadow-md transition-all d-flex align-items-center">
+                            <i class="bi bi-check-lg me-2"></i>Save Task
+                        </button>
+                        <a href="{% url 'task_list' %}"
+                            class="btn btn-light px-4 py-2 fw-medium rounded-pill text-secondary hover:bg-gray-200 transition-all">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="form-group">
-        <label for="description">Description</label>
-        <textarea id="description" name="description">{{ task.description|default:'' }}</textarea>
-    </div>
+<style>
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+    }
 
-    <div class="form-group">
-        <label for="due_date">Due Date</label>
-        <input type="date" id="due_date" name="due_date" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
-    </div>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-    <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a href="{% url 'task_list' %}" class="btn btn-secondary">Cancel</a>
-    </div>
-</form>
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 {% endblock %}

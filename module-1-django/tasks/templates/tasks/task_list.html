@@ -1,33 +1,86 @@
 {% extends 'tasks/base.html' %}
 
 {% block content %}
-<a href="{% url 'task_create' %}" class="btn btn-primary">Add New Task</a>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-gray-800 mb-0">My Tasks</h2>
+            <a href="{% url 'task_create' %}"
+                class="btn btn-primary rounded-pill px-4 shadow-sm hover:shadow-md transition-all">
+                <i class="bi bi-plus-lg me-2"></i>Add New Task
+            </a>
+        </div>
 
-<ul class="task-list">
-    {% for task in tasks %}
-    <li class="task-item {% if task.is_done %}done{% endif %}">
-        <div class="task-info">
-            <div class="task-title">{{ task.title }}</div>
-            {% if task.description %}
-            <div class="task-meta">{{ task.description }}</div>
-            {% endif %}
-            {% if task.due_date %}
-            <div class="task-meta">Due: {{ task.due_date }}</div>
-            {% endif %}
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="list-group list-group-flush">
+                {% for task in tasks %}
+                <div
+                    class="list-group-item p-4 border-bottom hover:bg-gray-50 transition-colors {% if task.is_done %}bg-gray-50{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h5
+                                    class="mb-0 fw-bold {% if task.is_done %}text-decoration-line-through text-secondary{% else %}text-dark{% endif %}">
+                                    {{ task.title }}
+                                </h5>
+                                {% if task.is_done %}
+                                <span
+                                    class="badge bg-success-subtle text-success rounded-pill px-2 py-1 text-xs">Completed</span>
+                                {% endif %}
+                            </div>
+
+                            {% if task.description %}
+                            <p class="text-secondary mb-2 small">{{ task.description|truncatechars:100 }}</p>
+                            {% endif %}
+
+                            {% if task.due_date %}
+                            <div class="d-flex align-items-center text-secondary small">
+                                <i class="bi bi-calendar-event me-2"></i>
+                                <span>Due: {{ task.due_date|date:"M d, Y" }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2 align-items-center">
+                            <form action="{% url 'task_toggle' task.pk %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit"
+                                    class="btn btn-sm {% if task.is_done %}btn-outline-secondary{% else %}btn-success{% endif %} rounded-circle p-2 d-flex align-items-center justify-content-center"
+                                    style="width: 32px; height: 32px;"
+                                    title="{% if task.is_done %}Mark as undone{% else %}Mark as done{% endif %}">
+                                    <i
+                                        class="bi {% if task.is_done %}bi-arrow-counterclockwise{% else %}bi-check-lg{% endif %}"></i>
+                                </button>
+                            </form>
+
+                            <a href="{% url 'task_edit' task.pk %}"
+                                class="btn btn-sm btn-outline-primary rounded-circle p-2 d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px;" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+
+                            <a href="{% url 'task_delete' task.pk %}"
+                                class="btn btn-sm btn-outline-danger rounded-circle p-2 d-flex align-items-center justify-content-center"
+                                style="width: 32px; height: 32px;" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center p-5">
+                    <div class="mb-3 text-secondary">
+                        <i class="bi bi-clipboard-check display-1 opacity-25"></i>
+                    </div>
+                    <h4 class="text-secondary fw-medium">No tasks yet</h4>
+                    <p class="text-muted">Create your first task to get started!</p>
+                    <a href="{% url 'task_create' %}" class="btn btn-outline-primary rounded-pill mt-2">
+                        Create Task
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-        <div class="task-actions">
-            <form action="{% url 'task_toggle' task.pk %}" method="post" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn {% if task.is_done %}btn-secondary{% else %}btn-success{% endif %}">
-                    {% if task.is_done %}Undo{% else %}Done{% endif %}
-                </button>
-            </form>
-            <a href="{% url 'task_edit' task.pk %}" class="btn btn-primary">Edit</a>
-            <a href="{% url 'task_delete' task.pk %}" class="btn btn-danger">Delete</a>
-        </div>
-    </li>
-    {% empty %}
-    <li class="task-item">No tasks yet. Create one!</li>
-    {% endfor %}
-</ul>
+    </div>
+</div>
 {% endblock %}
