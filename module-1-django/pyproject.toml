@@ -1,7 +1,7 @@
 [project]
 name = "module-1-django"
 version = "0.1.0"
-description = "Add your description here"
+description = "My project as AI DEVELOPER"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
