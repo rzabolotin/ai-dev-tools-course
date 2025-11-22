@@ -45,15 +45,49 @@
                         {% endif %}
                     </div>
 
-                    <div class="d-flex gap-3 pt-3">
-                        <button type="submit"
-                            class="btn btn-primary px-4 py-2 fw-medium rounded-pill shadow-sm hover:shadow-md transition-all d-flex align-items-center">
-                            <i class="bi bi-check-lg me-2"></i>Save Task
-                        </button>
-                        <a href="{% url 'task_list' %}"
-                            class="btn btn-light px-4 py-2 fw-medium rounded-pill text-secondary hover:bg-gray-200 transition-all">
-                            Cancel
+                    <div class="mb-4">
+                        <label for="{{ form.priority.id_for_label }}"
+                            class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Priority</label>
+                        {{ form.priority }}
+                        {% if form.priority.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.priority.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-secondary small text-uppercase tracking-wide">Categories</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            {{ form.categories }}
+                        </div>
+                        {% if form.categories.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.categories.errors|striptags }}
+                        </div>
+                        {% endif %}
+                        <small class="text-muted">
+                            <a href="{% url 'category_list' %}">Manage categories</a>
+                        </small>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3">
+                        <div class="d-flex gap-3">
+                            <button type="submit"
+                                class="btn btn-primary px-4 py-2 fw-medium rounded-pill shadow-sm hover:shadow-md transition-all d-flex align-items-center">
+                                <i class="bi bi-check-lg me-2"></i>Save Task
+                            </button>
+                            <a href="{% url 'task_list' %}"
+                                class="btn btn-light px-4 py-2 fw-medium rounded-pill text-secondary hover:bg-gray-200 transition-all">
+                                Cancel
+                            </a>
+                        </div>
+                        {% if form.instance.pk %}
+                        <a href="{% url 'task_delete' form.instance.pk %}"
+                            class="btn btn-outline-danger px-4 py-2 fw-medium rounded-pill d-flex align-items-center">
+                            <i class="bi bi-trash me-2"></i>Delete
                         </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>
