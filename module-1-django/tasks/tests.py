@@ -6,7 +6,7 @@ from .forms import TaskForm
 
 class TaskFormTest(TestCase):
     def test_valid_form(self):
-        data = {'title': 'Test Task', 'description': 'Test Description', 'due_date': '2023-12-31'}
+        data = {'title': 'Test Task', 'description': 'Test Description', 'due_date': '2023-12-31', 'priority': 'medium'}
         form = TaskForm(data=data)
         self.assertTrue(form.is_valid())
 
@@ -25,7 +25,8 @@ class TaskViewTest(TestCase):
         response = self.client.post(reverse('task_create'), {
             'title': 'New Task',
             'description': 'New Description',
-            'due_date': '2023-12-31'
+            'due_date': '2023-12-31',
+            'priority': 'medium'
         })
         self.assertEqual(response.status_code, 302) # Redirects to task_list
         self.assertTrue(Task.objects.filter(title='New Task').exists())
@@ -78,7 +79,8 @@ class TaskEditViewTest(TestCase):
         response = self.client.post(reverse('task_edit', args=[self.task.pk]), {
             'title': 'Updated Task',
             'description': 'Updated Description',
-            'due_date': '2023-12-31'
+            'due_date': '2023-12-31',
+            'priority': 'medium'
         })
         self.assertEqual(response.status_code, 302)
         self.task.refresh_from_db()
