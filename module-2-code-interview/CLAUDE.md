@@ -220,13 +220,18 @@ Migration: `backend/database/migrations/2024_01_01_000001_create_interview_sessi
 - `runtimeConfig.public.wsUrl` - WebSocket URL (default: ws://localhost:8080)
 - Env vars: `NUXT_PUBLIC_API_BASE`, `NUXT_PUBLIC_WS_URL`
 
-**Docker Entrypoint** (`backend/entrypoint.sh`):
+**Docker Entrypoint** (`backend/docker-entrypoint.sh`):
 - Auto-copies `.env.example` to `.env`
+- Installs composer dependencies if `vendor/autoload.php` doesn't exist
 - Generates `APP_KEY` if missing
 - Waits for database connection (nc check)
 - Runs migrations with `--force`
 - Starts Reverb WebSocket server in background
 - Starts Laravel dev server on port 8000
+
+**Frontend Entrypoint** (`frontend/docker-entrypoint.sh`):
+- Installs npm dependencies if `node_modules` doesn't exist or is incomplete
+- Starts Nuxt dev server on port 3000
 
 ### Supported Languages
 
@@ -273,6 +278,8 @@ docker-compose exec frontend npm run test
 
 10. **Session Persistence**: Sessions stored in MySQL, but no cleanup mechanism. Consider adding TTL or manual deletion.
 
+11. **IDE Access to Dependencies**: Both `vendor/` (backend) and `node_modules/` (frontend) are now stored locally (not in anonymous volumes). This allows IDE autocomplete and code navigation. Dependencies auto-install via entrypoint scripts on first container start.
+
 ### API Documentation
 
 Full OpenAPI 3.0.3 specification available in `openapi.yaml` at project root. Includes:
@@ -285,7 +292,10 @@ Full OpenAPI 3.0.3 specification available in `openapi.yaml` at project root. In
 1. Code changes in backend: Container auto-reloads (Laravel dev server)
 2. Code changes in frontend: HMR via Vite (Nuxt dev mode)
 3. Database changes: Create migration, restart backend container or run manually
-4. Dependency changes: Exec into container and run composer/npm install
+4. Dependency changes:
+   - Backend: Added to composer.json → restart container (auto-installs via entrypoint)
+   - Frontend: Added to package.json → restart container (auto-installs via entrypoint)
+   - Or exec into container: `docker-compose exec backend composer install` / `docker-compose exec frontend npm install`
 5. Reverb changes: Restart backend container to restart WebSocket server
 
 ### Common Pitfalls

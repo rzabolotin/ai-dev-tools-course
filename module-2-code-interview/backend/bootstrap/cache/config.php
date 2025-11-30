@@ -1,11 +1,42 @@
 <?php return array (
-  'view' => 
+  'auth' => 
   array (
-    'paths' => 
+    'defaults' => 
     array (
-      0 => '/var/www/html/resources/views',
+      'guard' => 'web',
+      'passwords' => 'users',
     ),
-    'compiled' => '/var/www/html/storage/framework/views',
+    'guards' => 
+    array (
+      'web' => 
+      array (
+        'driver' => 'session',
+        'provider' => 'users',
+      ),
+    ),
+    'providers' => 
+    array (
+      'users' => 
+      array (
+        'driver' => 'eloquent',
+        'model' => 'App\\Models\\User',
+      ),
+    ),
+    'passwords' => 
+    array (
+      'users' => 
+      array (
+        'provider' => 'users',
+        'table' => 'password_reset_tokens',
+        'expire' => 60,
+        'throttle' => 60,
+      ),
+    ),
+    'password_timeout' => 10800,
+  ),
+  'concurrency' => 
+  array (
+    'default' => 'process',
   ),
   'filesystems' => 
   array (
@@ -47,40 +78,22 @@
       '/var/www/html/public/storage' => '/var/www/html/storage/app/public',
     ),
   ),
-  'auth' => 
+  'hashing' => 
   array (
-    'defaults' => 
+    'driver' => 'bcrypt',
+    'bcrypt' => 
     array (
-      'guard' => 'web',
-      'passwords' => 'users',
+      'rounds' => 12,
+      'verify' => true,
     ),
-    'guards' => 
+    'argon' => 
     array (
-      'web' => 
-      array (
-        'driver' => 'session',
-        'provider' => 'users',
-      ),
+      'memory' => 65536,
+      'threads' => 1,
+      'time' => 4,
+      'verify' => true,
     ),
-    'providers' => 
-    array (
-      'users' => 
-      array (
-        'driver' => 'eloquent',
-        'model' => 'App\\Models\\User',
-      ),
-    ),
-    'passwords' => 
-    array (
-      'users' => 
-      array (
-        'provider' => 'users',
-        'table' => 'password_reset_tokens',
-        'expire' => 60,
-        'throttle' => 60,
-      ),
-    ),
-    'password_timeout' => 10800,
+    'rehash_on_login' => true,
   ),
   'mail' => 
   array (
@@ -157,27 +170,6 @@
         0 => '/var/www/html/resources/views/vendor/mail',
       ),
     ),
-  ),
-  'hashing' => 
-  array (
-    'driver' => 'bcrypt',
-    'bcrypt' => 
-    array (
-      'rounds' => 12,
-      'verify' => true,
-    ),
-    'argon' => 
-    array (
-      'memory' => 65536,
-      'threads' => 1,
-      'time' => 4,
-      'verify' => true,
-    ),
-    'rehash_on_login' => true,
-  ),
-  'concurrency' => 
-  array (
-    'default' => 'process',
   ),
   'queue' => 
   array (
@@ -263,6 +255,14 @@
         'channel' => NULL,
       ),
     ),
+  ),
+  'view' => 
+  array (
+    'paths' => 
+    array (
+      0 => '/var/www/html/resources/views',
+    ),
+    'compiled' => '/var/www/html/storage/framework/views',
   ),
   'app' => 
   array (

@@ -7,16 +7,19 @@ echo "🚀 Starting Laravel application..."
 echo "📁 Creating required directories..."
 mkdir -p storage/framework/{cache,sessions,views}
 mkdir -p storage/logs
-mkdir -p bootstrap/cache
-
-# Set permissions
-chmod -R 775 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
 
 # Copy .env.example to .env if .env doesn't exist
 if [ ! -f .env ]; then
     echo "📝 Creating .env file..."
     cp .env.example .env
+fi
+
+# Install composer dependencies if vendor doesn't exist
+if [ ! -f vendor/autoload.php ]; then
+    echo "📦 Installing composer dependencies..."
+    composer install --no-interaction --prefer-dist --optimize-autoloader
+else
+    echo "✅ Composer dependencies already installed"
 fi
 
 # Generate application key if not set

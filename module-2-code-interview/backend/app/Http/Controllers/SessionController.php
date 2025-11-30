@@ -5,24 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\InterviewSession;
 use App\Events\CodeUpdated;
 use App\Events\LanguageChanged;
-use Illuminate\Http\Request;
+use App\Http\Requests\CreateSessionRequest;
+use App\Http\Requests\UpdateSessionCodeRequest;
+use App\Http\Requests\UpdateSessionLanguageRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
 
 class SessionController extends Controller
 {
     /**
      * Create a new interview session
      */
-    public function create(Request $request): JsonResponse
+    public function create(CreateSessionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'language' => ['nullable', 'string', Rule::in([
-                'javascript', 'typescript', 'python', 'java',
-                'cpp', 'go', 'rust', 'php'
-            ])],
-            'code' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $session = InterviewSession::create([
             'language' => $validated['language'] ?? 'javascript',
@@ -45,13 +40,11 @@ class SessionController extends Controller
     /**
      * Update session code
      */
-    public function updateCode(Request $request, string $sessionId): JsonResponse
+    public function updateCode(UpdateSessionCodeRequest $request, string $sessionId): JsonResponse
     {
         $session = InterviewSession::where('session_id', $sessionId)->firstOrFail();
 
-        $validated = $request->validate([
-            'code' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $session->update([
             'code' => $validated['code'],
@@ -66,16 +59,11 @@ class SessionController extends Controller
     /**
      * Update session language
      */
-    public function updateLanguage(Request $request, string $sessionId): JsonResponse
+    public function updateLanguage(UpdateSessionLanguageRequest $request, string $sessionId): JsonResponse
     {
         $session = InterviewSession::where('session_id', $sessionId)->firstOrFail();
 
-        $validated = $request->validate([
-            'language' => ['required', 'string', Rule::in([
-                'javascript', 'typescript', 'python', 'java',
-                'cpp', 'go', 'rust', 'php'
-            ])],
-        ]);
+        $validated = $request->validated();
 
         $session->update([
             'language' => $validated['language'],
