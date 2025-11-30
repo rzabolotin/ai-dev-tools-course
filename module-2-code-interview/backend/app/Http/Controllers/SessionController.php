@@ -30,49 +30,43 @@ class SessionController extends Controller
     /**
      * Get session details
      */
-    public function show(string $sessionId): JsonResponse
+    public function show(InterviewSession $interviewSession): JsonResponse
     {
-        $session = InterviewSession::where('session_id', $sessionId)->firstOrFail();
-
-        return response()->json($session);
+        return response()->json($interviewSession);
     }
 
     /**
      * Update session code
      */
-    public function updateCode(UpdateSessionCodeRequest $request, string $sessionId): JsonResponse
+    public function updateCode(UpdateSessionCodeRequest $request, InterviewSession $interviewSession): JsonResponse
     {
-        $session = InterviewSession::where('session_id', $sessionId)->firstOrFail();
-
         $validated = $request->validated();
 
-        $session->update([
+        $interviewSession->update([
             'code' => $validated['code'],
         ]);
 
         // Broadcast the code update to all connected clients
-        broadcast(new CodeUpdated($session))->toOthers();
+        broadcast(new CodeUpdated($interviewSession))->toOthers();
 
-        return response()->json($session);
+        return response()->json($interviewSession);
     }
 
     /**
      * Update session language
      */
-    public function updateLanguage(UpdateSessionLanguageRequest $request, string $sessionId): JsonResponse
+    public function updateLanguage(UpdateSessionLanguageRequest $request, InterviewSession $interviewSession): JsonResponse
     {
-        $session = InterviewSession::where('session_id', $sessionId)->firstOrFail();
-
         $validated = $request->validated();
 
-        $session->update([
+        $interviewSession->update([
             'language' => $validated['language'],
         ]);
 
         // Broadcast the language change to all connected clients
-        broadcast(new LanguageChanged($session))->toOthers();
+        broadcast(new LanguageChanged($interviewSession))->toOthers();
 
-        return response()->json($session);
+        return response()->json($interviewSession);
     }
 
     /**

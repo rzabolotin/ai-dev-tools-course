@@ -11,6 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 // Session Management
 Route::post('/sessions', [SessionController::class, 'create']);
-Route::get('/sessions/{sessionId}', [SessionController::class, 'show']);
-Route::put('/sessions/{sessionId}/code', [SessionController::class, 'updateCode']);
-Route::put('/sessions/{sessionId}/language', [SessionController::class, 'updateLanguage']);
+Route::get('/sessions/{interviewSession}', [SessionController::class, 'show']);
+Route::put('/sessions/{interviewSession}/code', [SessionController::class, 'updateCode']);
+Route::put('/sessions/{interviewSession}/language', [SessionController::class, 'updateLanguage']);
