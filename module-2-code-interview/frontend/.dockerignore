@@ -1,0 +1,13 @@
+.git
+.gitignore
+.nuxt
+.output
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+.idea
+.vscode
+.DS_Store

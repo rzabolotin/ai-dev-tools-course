@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: Code Interview Platform API
+  description: |
+    API for real-time collaborative coding interviews.
+
+    ## WebSocket Events
+
+    The platform uses WebSocket for real-time synchronization on port 8080.
+
+    ### Client -> Server Events
+    - None (all updates go through REST API which broadcasts via WebSocket)
+
+    ### Server -> Client Events
+    - **code.updated** - Broadcasted when code is updated
+      ```json
+      {
+        "sessionId": "abc123",
+        "code": "console.log('hello');",
+        "timestamp": "2024-01-01T00:00:00Z"
+      }
+      ```
+
+    - **language.changed** - Broadcasted when language is changed
+      ```json
+      {
+        "sessionId": "abc123",
+        "language": "python",
+        "timestamp": "2024-01-01T00:00:00Z"
+      }
+      ```
+
+    - **user.joined** - Broadcasted when a user joins the session
+      ```json
+      {
+        "sessionId": "abc123",
+        "userCount": 2,
+        "timestamp": "2024-01-01T00:00:00Z"
+      }
+      ```
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@codeinterview.com
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+tags:
+  - name: Sessions
+    description: Interview session management
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /api/sessions:
+    post:
+      tags:
+        - Sessions
+      summary: Create a new interview session
+      description: Creates a new interview session and returns a unique session ID that can be shared with candidates
+      operationId: createSession
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language:
+                  type: string
+                  description: Initial programming language
+                  default: javascript
+                  enum:
+                    - javascript
+                    - typescript
+                    - python
+                    - java
+                    - cpp
+                    - go
+                    - rust
+                    - php
+                code:
+                  type: string
+                  description: Initial code content
+                  default: ""
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/sessions/{sessionId}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      description: Retrieves the current state of an interview session
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123def456"
+      responses:
+        '200':
+          description: Session found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/sessions/{sessionId}/code:
+    put:
+      tags:
+        - Sessions
+      summary: Update session code
+      description: Updates the code in the session and broadcasts the change to all connected clients via WebSocket
+      operationId: updateCode
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123def456"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Updated code content
+                  example: "function hello() {\n  console.log('Hello, World!');\n}"
+      responses:
+        '200':
+          description: Code updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/sessions/{sessionId}/language:
+    put:
+      tags:
+        - Sessions
+      summary: Update session language
+      description: Changes the programming language for the session and broadcasts the change to all connected clients via WebSocket
+      operationId: updateLanguage
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "abc123def456"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - language
+              properties:
+                language:
+                  type: string
+                  description: Programming language
+                  enum:
+                    - javascript
+                    - typescript
+                    - python
+                    - java
+                    - cpp
+                    - go
+                    - rust
+                    - php
+                  example: "python"
+      responses:
+        '200':
+          description: Language updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the API
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-01T00:00:00Z"
+
+components:
+  schemas:
+    Session:
+      type: object
+      required:
+        - id
+        - session_id
+        - code
+        - language
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Internal database ID
+          example: 1
+        session_id:
+          type: string
+          description: Unique session identifier (shareable)
+          example: "abc123def456"
+        code:
+          type: string
+          description: Current code content
+          example: "console.log('Hello, World!');"
+        language:
+          type: string
+          description: Current programming language
+          enum:
+            - javascript
+            - typescript
+            - python
+            - java
+            - cpp
+            - go
+            - rust
+            - php
+          example: "javascript"
+        created_at:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+          example: "2024-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-01T00:00:00Z"
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Session not found"
+        error:
+          type: string
+          description: Error code or type
+          example: "NOT_FOUND"
+
+    ValidationError:
+      type: object
+      required:
+        - message
+        - errors
+      properties:
+        message:
+          type: string
+          description: General error message
+          example: "The given data was invalid."
+        errors:
+          type: object
+          description: Field-specific validation errors
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            language:
+              - "The selected language is invalid."
