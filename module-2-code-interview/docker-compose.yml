@@ -7,7 +7,42 @@ services:
     container_name: code_interview_backend
     ports:
       - "8000:8000"
-      - "8080:8080"  # Reverb WebSocket server
+    volumes:
+      - ./backend:/var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=code_interview
+      - DB_USERNAME=root
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BROADCAST_DRIVER=reverb
+      - REVERB_APP_ID=code-interview
+      - REVERB_APP_KEY=local-key
+      - REVERB_APP_SECRET=local-secret
+      - REVERB_HOST=reverb
+      - REVERB_PORT=8080
+      - REVERB_SCHEME=http
+      - REVERB_API_HOST=reverb
+    depends_on:
+      - db
+      - redis
+    networks:
+      - code_interview_network
+
+  # Laravel Reverb WebSocket Server
+  reverb:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: code_interview_reverb
+    entrypoint: ["/var/www/html/docker-entrypoint-reverb.sh"]
+    ports:
+      - "8080:8080"
     volumes:
       - ./backend:/var/www/html
     environment:
@@ -28,9 +63,11 @@ services:
       - REVERB_HOST=0.0.0.0
       - REVERB_PORT=8080
       - REVERB_SCHEME=http
+      - REVERB_SERVER_HOST=0.0.0.0
     depends_on:
       - db
       - redis
+      - backend
     networks:
       - code_interview_network
 

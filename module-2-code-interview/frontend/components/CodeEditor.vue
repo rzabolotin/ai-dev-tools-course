@@ -1,11 +1,14 @@
 <template>
-  <div ref="editorContainer" class="h-full w-full"></div>
+  <textarea
+    :value="modelValue"
+    @input="handleInput"
+    :readonly="readOnly"
+    class="code-editor"
+    spellcheck="false"
+  ></textarea>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
-import * as monaco from 'monaco-editor'
-
 const props = defineProps<{
   modelValue: string
   language: string
@@ -16,80 +19,29 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
-const editorContainer = ref<HTMLElement | null>(null)
-let editor: monaco.editor.IStandaloneCodeEditor | null = null
-let isUpdatingFromExternal = false
-
-onMounted(() => {
-  if (editorContainer.value) {
-    // Initialize Monaco Editor
-    editor = monaco.editor.create(editorContainer.value, {
-      value: props.modelValue,
-      language: getMonacoLanguage(props.language),
-      theme: 'vs-dark',
-      automaticLayout: true,
-      fontSize: 14,
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-      readOnly: props.readOnly || false,
-    })
-
-    // Listen for content changes
-    editor.onDidChangeModelContent(() => {
-      if (!isUpdatingFromExternal && editor) {
-        emit('update:modelValue', editor.getValue())
-      }
-    })
-  }
-})
-
-// Watch for external changes to the model value
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (editor && editor.getValue() !== newValue) {
-      isUpdatingFromExternal = true
-      const position = editor.getPosition()
-      editor.setValue(newValue)
-      if (position) {
-        editor.setPosition(position)
-      }
-      isUpdatingFromExternal = false
-    }
-  }
-)
-
-// Watch for language changes
-watch(
-  () => props.language,
-  (newLanguage) => {
-    if (editor) {
-      const model = editor.getModel()
-      if (model) {
-        monaco.editor.setModelLanguage(model, getMonacoLanguage(newLanguage))
-      }
-    }
-  }
-)
-
-onBeforeUnmount(() => {
-  if (editor) {
-    editor.dispose()
-  }
-})
-
-// Map our language names to Monaco language IDs
-const getMonacoLanguage = (lang: string): string => {
-  const languageMap: Record<string, string> = {
-    javascript: 'javascript',
-    typescript: 'typescript',
-    python: 'python',
-    java: 'java',
-    cpp: 'cpp',
-    go: 'go',
-    rust: 'rust',
-    php: 'php',
-  }
-  return languageMap[lang] || 'javascript'
+const handleInput = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement
+  emit('update:modelValue', target.value)
 }
 </script>
+
+<style scoped>
+.code-editor {
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: none;
+  outline: none;
+  resize: none;
+  tab-size: 2;
+}
+
+.code-editor::placeholder {
+  color: #666;
+}
+</style>

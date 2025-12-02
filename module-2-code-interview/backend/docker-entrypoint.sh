@@ -42,17 +42,11 @@ sleep 3
 echo "🗄️  Running migrations..."
 php artisan migrate --force || echo "⚠️  Migrations failed or already run"
 
-# Clear and cache config
+# Clear caches
 echo "🔧 Optimizing application..."
-php artisan config:clear || true
-php artisan config:cache || true
-
-# Start Reverb WebSocket server in background
-echo "🌐 Starting WebSocket server..."
-php artisan reverb:start --host=0.0.0.0 --port=8080 --debug &
-
-# Give Reverb a moment to start
-sleep 2
+php artisan cache:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
 
 # Start Laravel development server
 echo "✨ Starting Laravel server on port 8000..."

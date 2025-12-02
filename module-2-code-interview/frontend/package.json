@@ -13,7 +13,6 @@
   "dependencies": {
     "@nuxtjs/tailwindcss": "^6.11.4",
     "laravel-echo": "^1.16.1",
-    "monaco-editor": "^0.45.0",
     "nuxt": "^3.10.0",
     "pusher-js": "^8.4.0-rc2",
     "vue": "^3.4.15",
