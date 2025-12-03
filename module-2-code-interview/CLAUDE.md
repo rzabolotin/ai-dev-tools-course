@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Real-time collaborative coding interview platform built as a Docker-first monorepo with Laravel 11 backend and Nuxt 3 frontend. Core feature: Multiple users can edit code simultaneously with WebSocket synchronization via Laravel Reverb.
+Real-time collaborative coding interview platform built as a Docker-first monorepo with FastAPI backend and Nuxt 3 frontend. Core feature: Multiple users can edit code simultaneously with WebSocket synchronization.
 
 ## Common Commands
 
@@ -15,41 +15,34 @@ Real-time collaborative coding interview platform built as a Docker-first monore
 docker-compose up --build
 
 # Start specific services
-docker-compose up backend db redis    # Backend only
-docker-compose up frontend             # Frontend only
+docker-compose up backend db    # Backend only
+docker-compose up frontend      # Frontend only
 
 # Stop services
-docker-compose down                    # Stop all
-docker-compose down -v                 # Stop and clean volumes (wipes database)
+docker-compose down             # Stop all
+docker-compose down -v          # Stop and clean volumes (wipes database)
 
 # View logs
 docker-compose logs -f backend
 docker-compose logs -f frontend
 
 # Access container shells
-docker-compose exec backend bash       # Laravel container
+docker-compose exec backend bash       # FastAPI container
 docker-compose exec frontend sh        # Nuxt container
 docker-compose exec db mysql -u root -p
 ```
 
-### Backend (Laravel)
+### Backend (FastAPI)
 
 ```bash
-# Run migrations
-docker-compose exec backend php artisan migrate
+# The backend auto-starts with uvicorn --reload
+# No manual commands needed for development
 
-# Start Reverb WebSocket server (auto-starts in entrypoint, manual restart if needed)
-docker-compose exec backend php artisan reverb:start
-
-# Clear cache
-docker-compose exec backend php artisan cache:clear
+# Run migrations (handled automatically on startup via SQLAlchemy)
+# Tables are created automatically when the app starts
 
 # Install dependencies
-docker-compose exec backend composer install
-docker-compose exec backend composer require package-name
-
-# Run tests (PHPUnit available, no tests written yet)
-docker-compose exec backend php artisan test
+docker-compose exec backend pip install package-name
 ```
 
 ### Frontend (Nuxt)
@@ -61,77 +54,74 @@ docker-compose exec frontend npm install package-name
 
 # Build for production
 docker-compose exec frontend npm run build
-
-# Run tests (test infrastructure available, no tests written yet)
-docker-compose exec frontend npm run test
 ```
 
 ### Ports
 
 - **3000**: Nuxt frontend
-- **8000**: Laravel API
-- **8080**: Reverb WebSocket server
+- **8000**: FastAPI (HTTP + WebSocket on same port)
 - **3306**: MySQL
-- **6379**: Redis
 
 ## Architecture
 
 ### Backend Request Flow
 
 ```
-HTTP Request → routes/api.php → SessionController → InterviewSession Model → MySQL
-                                        ↓
-                                   Events (CodeUpdated/LanguageChanged)
-                                        ↓
-                                   broadcast()->toOthers()
-                                        ↓
-                                   Reverb WebSocket (port 8080)
-                                        ↓
-                                   channel: session.{sessionId}
+HTTP Request → FastAPI Router → SQLAlchemy → MySQL
+                    ↓
+            WebSocket broadcast
+                    ↓
+            ConnectionManager.broadcast_to_session()
+                    ↓
+            Other connected clients
 ```
 
 ### Frontend Data Flow
 
 ```
 User edits → Monaco Editor → Debounced (500ms) → API call → Backend
-                                                                ↓
-Other users ← Monaco update ← Echo listener ← WebSocket ← Broadcasting
+                                                               ↓
+Other users ← Monaco update ← WebSocket message ← FastAPI WebSocket
 ```
 
 ### Key Backend Files
 
-**Models** (`backend/app/Models/InterviewSession.php`):
-- Single model for all interview sessions
-- Custom route key: `session_id` (16-char random string), NOT `id`
-- Fields: `session_id` (unique), `code` (text), `language` (string), timestamps
-- Important: When querying by route parameter, Laravel uses `session_id` not `id`
+**Main App** (`backend_fastapi/app/main.py`):
+- FastAPI application with lifespan for DB initialization
+- All REST endpoints and WebSocket endpoint
+- CORS middleware configured
 
-**Controllers** (`backend/app/Http/Controllers/SessionController.php`):
-- `create()` - Creates session with optional language/code
-- `show($sessionId)` - Retrieves session (uses session_id, not id)
-- `updateCode($sessionId)` - Updates code + broadcasts event
-- `updateLanguage($sessionId)` - Updates language + broadcasts event
-- Pattern: After update, broadcasts `new Event($session)->toOthers()` to prevent echo
+**Models** (`backend_fastapi/app/models.py`):
+- `InterviewSession` - SQLAlchemy model
+- Fields: `id`, `session_id` (16-char unique), `code`, `language`, timestamps
+- `session_id` auto-generated on creation
 
-**Events** (`backend/app/Events/`):
-- `CodeUpdated` - Broadcasts on `session.{sessionId}` as `code.updated`
-- `LanguageChanged` - Broadcasts on `session.{sessionId}` as `language.changed`
-- Both implement `ShouldBroadcast` interface
-- Payload includes: sessionId, changed data, ISO 8601 timestamp
-- Custom event names via `broadcastAs()` method
+**Schemas** (`backend_fastapi/app/schemas.py`):
+- Pydantic models for request/response validation
+- `SUPPORTED_LANGUAGES` list for validation
+- WebSocket event schemas
 
-**Broadcasting Channels** (`backend/routes/channels.php`):
-- `session.{sessionId}` - Public channel (returns true, no auth)
-- Each interview session has isolated channel
-- No authentication required for MVP
+**WebSocket Manager** (`backend_fastapi/app/websocket_manager.py`):
+- `ConnectionManager` class for managing WebSocket connections
+- `broadcast_to_session()` - sends to all clients except sender
+- Tracks connections by session_id and client_id
 
-**API Routes** (`backend/routes/api.php`):
+**Database** (`backend_fastapi/app/database.py`):
+- Async SQLAlchemy setup with aiomysql
+- `init_db()` creates tables on startup
+
+**Config** (`backend_fastapi/app/config.py`):
+- Pydantic settings from environment variables
+- `DATABASE_URL` configuration
+
+**API Routes**:
 ```
 POST   /api/sessions                    - Create session
-GET    /api/sessions/{sessionId}        - Get session
-PUT    /api/sessions/{sessionId}/code   - Update code
-PUT    /api/sessions/{sessionId}/language - Update language
-GET    /health                           - Health check
+GET    /api/sessions/{session_id}       - Get session
+PUT    /api/sessions/{session_id}/code?client_id=xxx   - Update code
+PUT    /api/sessions/{session_id}/language?client_id=xxx - Update language
+GET    /health                          - Health check
+WS     /ws/{session_id}?client_id=xxx   - WebSocket connection
 ```
 
 ### Key Frontend Files
@@ -144,56 +134,49 @@ GET    /health                           - Health check
 - Monaco Editor wrapper with 8 language support
 - Props: `modelValue` (code), `language`
 - Emits: `update:modelValue`, `update:language`
-- External update handling: Preserves cursor position when updating from WebSocket
-- Theme: vs-dark, font size: 14px, minimap enabled
 
 **Composables**:
-- `useApi.ts` - API client wrapper (SessionsApi, HealthApi)
-- `useWebSocket.ts` - Laravel Echo integration with Reverb
-  - `initEcho()` - Creates global Echo instance with Pusher transport
-  - `joinSession(sessionId, callbacks)` - Subscribes to `session.{sessionId}` channel
-  - Listens for: `code.updated`, `language.changed`
+- `useApi.ts` - API client wrapper with clientId support
+- `useWebSocket.ts` - Native WebSocket integration (no Laravel Echo)
+  - `joinSession(sessionId, callbacks)` - Connects to `ws://host/ws/{sessionId}`
+  - `getClientId()` - Returns client ID assigned by server
+  - Events: `connected`, `code.updated`, `language.changed`
 - `useCodeExecution.ts` - Browser-based code execution
-  - JavaScript: eval() with console capture
-  - TypeScript: Auto-transpiled to JS then executed
-  - Others: Display-only (Pyodide planned for Python)
 
 **API Layer** (`frontend/api/`):
 - `BaseApi.ts` - Abstract HTTP client using `ofetch`
-- `SessionsApi.ts` - Session-specific endpoints
-- `types.ts` - TypeScript interfaces for Session, requests, responses
-- Pattern: All API calls go through typed API classes, not direct fetch
+- `SessionsApi.ts` - Session-specific endpoints with clientId support
+- `types.ts` - TypeScript interfaces
 
 ### Real-time Synchronization Pattern
 
-**Critical Implementation Details**:
+**How it works**:
 
-1. **Preventing Echo Feedback**:
-   - Backend uses `broadcast()->toOthers()` to exclude sender
-   - Sender sees immediate UI update, others receive via WebSocket
+1. Client connects to WebSocket, receives `clientId` from server
+2. Client makes API calls with `?client_id=xxx` query parameter
+3. Backend broadcasts to all clients EXCEPT the one with matching `client_id`
+4. This prevents echo (sender doesn't receive their own changes)
 
-2. **Debouncing Code Updates**:
-   - 500ms debounce on code editor changes
-   - Prevents API flood during typing
-   - Implemented in `session/[id].vue`
+**WebSocket Message Format**:
+```json
+// Connection established
+{"event": "connected", "clientId": "uuid-here"}
 
-3. **Language Changes**:
-   - No debounce (immediate)
-   - Less frequent, user-initiated action
+// Code updated
+{"event": "code.updated", "sessionId": "xxx", "code": "...", "timestamp": "..."}
 
-4. **Session Channel Pattern**:
-   - Channel name: `session.{sessionId}`
-   - Custom event names: `code.updated`, `language.changed` (defined in Event classes)
-   - Laravel Echo automatically prefixes private/presence channels, but not public channels
+// Language changed
+{"event": "language.changed", "sessionId": "xxx", "language": "python", "timestamp": "..."}
+```
 
-5. **Connection Flow**:
-   ```
-   User opens session page
-     → API call: Load session data
-     → WebSocket: Connect to Echo
-     → Channel: Subscribe to session.{sessionId}
-     → Listeners: Register callbacks for code.updated, language.changed
-   ```
+**Connection Flow**:
+```
+User opens session page
+  → API call: GET /api/sessions/{id}
+  → WebSocket: Connect to /ws/{sessionId}
+  → Server: Sends {"event": "connected", "clientId": "..."}
+  → Client: Stores clientId, uses it in API calls
+```
 
 ### Database Schema
 
@@ -204,34 +187,26 @@ GET    /health                           - Health check
 - `language` - String (default: 'javascript')
 - `created_at`, `updated_at` - Timestamps
 
-Migration: `backend/database/migrations/2024_01_01_000001_create_interview_sessions_table.php`
+### Configuration
 
-### Configuration Files
-
-**Backend** (`.env`):
-- `BROADCAST_DRIVER=reverb` - Uses Laravel Reverb, not Pusher/Redis
-- `REVERB_HOST=0.0.0.0` - Listens on all interfaces
-- `REVERB_PORT=8080` - WebSocket server port
-- `DB_HOST=db` - Docker service name for MySQL
-- `REDIS_HOST=redis` - Docker service name for Redis
+**Backend** (environment variables):
+- `DATABASE_URL=mysql+aiomysql://root:secret@db:3306/code_interview`
 
 **Frontend** (`nuxt.config.ts`):
 - `runtimeConfig.public.apiBase` - Backend API URL (default: http://localhost:8000)
-- `runtimeConfig.public.wsUrl` - WebSocket URL (default: ws://localhost:8080)
-- Env vars: `NUXT_PUBLIC_API_BASE`, `NUXT_PUBLIC_WS_URL`
+- `runtimeConfig.public.wsUrl` - WebSocket URL (default: ws://localhost:8000)
+- Note: Both HTTP and WebSocket use the same port now!
 
-**Docker Entrypoint** (`backend/docker-entrypoint.sh`):
-- Auto-copies `.env.example` to `.env`
-- Installs composer dependencies if `vendor/autoload.php` doesn't exist
-- Generates `APP_KEY` if missing
-- Waits for database connection (nc check)
-- Runs migrations with `--force`
-- Starts Reverb WebSocket server in background
-- Starts Laravel dev server on port 8000
+### Docker Services
 
-**Frontend Entrypoint** (`frontend/docker-entrypoint.sh`):
-- Installs npm dependencies if `node_modules` doesn't exist or is incomplete
-- Starts Nuxt dev server on port 3000
+```yaml
+services:
+  backend:    # FastAPI + Uvicorn (HTTP + WebSocket, port 8000)
+  frontend:   # Nuxt 3 (port 3000)
+  db:         # MySQL 8.0 (port 3306)
+```
+
+No Redis needed - WebSocket connections managed in-memory.
 
 ### Supported Languages
 
@@ -243,65 +218,31 @@ Code execution:
 - **TypeScript**: Transpiled to JS, then executed
 - **Others**: Syntax highlighting only (no execution)
 
-### Testing
-
-**Current State**: No tests written yet, but infrastructure ready.
-
-**Available Commands**:
-```bash
-# Backend (PHPUnit)
-docker-compose exec backend php artisan test
-
-# Frontend (Vitest expected, check package.json)
-docker-compose exec frontend npm run test
-```
-
 ### Important Notes
 
-1. **Session ID vs Primary Key**: Routes use `session_id` field, not `id`. Model has `getRouteKeyName()` returning 'session_id'.
+1. **Single Port for HTTP + WebSocket**: FastAPI serves both on port 8000. No separate WebSocket server needed.
 
-2. **No Authentication**: Channels are public (return true in channels.php). Anyone with session ID can join.
+2. **Client ID Pattern**: Each WebSocket client gets a unique ID. Pass it in API calls to prevent echo.
 
-3. **WebSocket Auto-start**: Reverb starts automatically in Docker entrypoint. Manual restart only needed for debugging.
+3. **No Authentication**: Sessions are public. Anyone with session ID can join.
 
-4. **Database Initialization**: Migrations run automatically on container start. Use `docker-compose down -v` to reset.
+4. **Auto Table Creation**: SQLAlchemy creates tables on app startup via `init_db()`.
 
-5. **Code Execution Security**: Uses browser `eval()` for JavaScript. Not sandboxed. Consider for production.
+5. **Hot Reload**: Both backend (uvicorn --reload) and frontend (Nuxt HMR) support hot reload.
 
-6. **Monaco Editor Version**: Check `package.json` for version. External updates preserve cursor position (important for UX).
+6. **Native WebSocket**: Frontend uses browser's native WebSocket API, no Laravel Echo or Pusher.
 
-7. **API Validation**: Language field validated against enum in `SessionController` (8 supported languages).
-
-8. **Broadcast Driver**: Uses Reverb (Laravel's WebSocket server), not Pusher. No external service needed.
-
-9. **Frontend State**: No Vuex/Pinia. Uses composables + local component state + props/emits.
-
-10. **Session Persistence**: Sessions stored in MySQL, but no cleanup mechanism. Consider adding TTL or manual deletion.
-
-11. **IDE Access to Dependencies**: Both `vendor/` (backend) and `node_modules/` (frontend) are now stored locally (not in anonymous volumes). This allows IDE autocomplete and code navigation. Dependencies auto-install via entrypoint scripts on first container start.
-
-### API Documentation
-
-Full OpenAPI 3.0.3 specification available in `openapi.yaml` at project root. Includes:
-- All REST endpoints with request/response schemas
-- WebSocket events documentation
-- Example payloads
+7. **Database Health Check**: Backend waits for MySQL to be healthy before starting.
 
 ### Development Workflow
 
-1. Code changes in backend: Container auto-reloads (Laravel dev server)
-2. Code changes in frontend: HMR via Vite (Nuxt dev mode)
-3. Database changes: Create migration, restart backend container or run manually
-4. Dependency changes:
-   - Backend: Added to composer.json → restart container (auto-installs via entrypoint)
-   - Frontend: Added to package.json → restart container (auto-installs via entrypoint)
-   - Or exec into container: `docker-compose exec backend composer install` / `docker-compose exec frontend npm install`
-5. Reverb changes: Restart backend container to restart WebSocket server
+1. Code changes in backend: Uvicorn auto-reloads
+2. Code changes in frontend: Nuxt HMR
+3. Database changes: Update models.py, restart backend (tables auto-created)
+4. Dependency changes: Rebuild containers or exec into them
 
 ### Common Pitfalls
 
-- **Wrong route key**: Don't query by `id`, use `session_id`
-- **Missing .toOthers()**: Will cause echo feedback to sender
-- **Forgetting debounce**: Code updates without debounce will flood API
-- **Channel name mismatch**: Backend broadcasts to `session.{id}`, frontend must listen to same channel name
-- **Event name mismatch**: Backend uses `broadcastAs()` for custom names, frontend must match exactly
+- **Missing client_id**: Without it, sender receives their own changes (echo)
+- **WebSocket URL**: Must be `ws://` not `http://`, same port as API
+- **MySQL startup**: Backend waits for db healthcheck before starting

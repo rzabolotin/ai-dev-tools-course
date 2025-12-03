@@ -29,15 +29,21 @@ export class SessionsApi extends BaseApi {
   /**
    * Update code in session
    */
-  async updateCode(sessionId: string, request: UpdateCodeRequest): Promise<Session> {
-    return this.put<Session>(`${this.basePath}/${sessionId}/code`, request)
+  async updateCode(sessionId: string, request: UpdateCodeRequest, clientId?: string): Promise<Session> {
+    const url = clientId
+      ? `${this.basePath}/${sessionId}/code?client_id=${clientId}`
+      : `${this.basePath}/${sessionId}/code`
+    return this.put<Session>(url, request)
   }
 
   /**
    * Update language in session
    */
-  async updateLanguage(sessionId: string, request: UpdateLanguageRequest): Promise<Session> {
-    return this.put<Session>(`${this.basePath}/${sessionId}/language`, request)
+  async updateLanguage(sessionId: string, request: UpdateLanguageRequest, clientId?: string): Promise<Session> {
+    const url = clientId
+      ? `${this.basePath}/${sessionId}/language?client_id=${clientId}`
+      : `${this.basePath}/${sessionId}/language`
+    return this.put<Session>(url, request)
   }
 
   /**

@@ -22,12 +22,12 @@ export const useApi = () => {
     return sessionsApi.getSession(sessionId)
   }
 
-  const updateCode = async (sessionId: string, code: string): Promise<Session> => {
-    return sessionsApi.updateCode(sessionId, { code })
+  const updateCode = async (sessionId: string, code: string, clientId?: string): Promise<Session> => {
+    return sessionsApi.updateCode(sessionId, { code }, clientId)
   }
 
-  const updateLanguage = async (sessionId: string, language: string): Promise<Session> => {
-    return sessionsApi.updateLanguage(sessionId, { language })
+  const updateLanguage = async (sessionId: string, language: string, clientId?: string): Promise<Session> => {
+    return sessionsApi.updateLanguage(sessionId, { language }, clientId)
   }
 
   return {

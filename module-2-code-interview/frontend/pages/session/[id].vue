@@ -114,8 +114,9 @@ const loading = ref(true)
 const executing = ref(false)
 const connected = ref(false)
 const copied = ref(false)
+const clientId = ref<string | null>(null)
 
-let wsChannel: any = null
+let wsConnection: WebSocket | null = null
 let updateTimeout: NodeJS.Timeout | null = null
 
 onMounted(async () => {
@@ -126,7 +127,11 @@ onMounted(async () => {
     selectedLanguage.value = session.language || 'javascript'
 
     // Connect to WebSocket
-    wsChannel = ws.joinSession(sessionId.value, {
+    wsConnection = ws.joinSession(sessionId.value, {
+      onConnected: (data: any) => {
+        clientId.value = data.clientId
+        connected.value = true
+      },
       onCodeUpdated: (data: any) => {
         code.value = data.code
       },
@@ -135,7 +140,6 @@ onMounted(async () => {
       },
     })
 
-    connected.value = true
     loading.value = false
   } catch (err: any) {
     console.error('Failed to load session:', err)
@@ -145,7 +149,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (wsChannel) {
+  if (wsConnection) {
     ws.leaveSession(sessionId.value)
   }
 })
@@ -158,7 +162,7 @@ const handleCodeChange = (newCode: string) => {
 
   updateTimeout = setTimeout(async () => {
     try {
-      await api.updateCode(sessionId.value, newCode)
+      await api.updateCode(sessionId.value, newCode, clientId.value || undefined)
     } catch (err) {
       console.error('Failed to update code:', err)
     }
@@ -167,7 +171,7 @@ const handleCodeChange = (newCode: string) => {
 
 const handleLanguageChange = async () => {
   try {
-    await api.updateLanguage(sessionId.value, selectedLanguage.value)
+    await api.updateLanguage(sessionId.value, selectedLanguage.value, clientId.value || undefined)
   } catch (err) {
     console.error('Failed to update language:', err)
   }

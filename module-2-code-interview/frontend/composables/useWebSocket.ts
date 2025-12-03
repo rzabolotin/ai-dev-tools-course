@@ -1,75 +1,98 @@
-import Echo from 'laravel-echo'
-import Pusher from 'pusher-js'
-
-declare global {
-  interface Window {
-    Pusher: any
-    Echo: Echo | null
-  }
+interface WebSocketCallbacks {
+  onCodeUpdated?: (data: { sessionId: string; code: string; timestamp: string }) => void
+  onLanguageChanged?: (data: { sessionId: string; language: string; timestamp: string }) => void
+  onConnected?: (data: { clientId: string }) => void
 }
 
 export const useWebSocket = () => {
   const config = useRuntimeConfig()
 
-  const initEcho = () => {
-    if (process.client && !window.Echo) {
-      window.Pusher = Pusher
+  let socket: WebSocket | null = null
+  let clientId: string | null = null
+  let currentSessionId: string | null = null
 
-      window.Echo = new Echo({
-        broadcaster: 'reverb',
-        key: 'local-key',
-        wsHost: 'localhost',
-        wsPort: 8080,
-        wssPort: 8080,
-        forceTLS: false,
-        enabledTransports: ['ws', 'wss'],
-        disableStats: true,
-      })
+  const getClientId = () => clientId
+
+  const joinSession = (sessionId: string, callbacks: WebSocketCallbacks) => {
+    if (typeof window === 'undefined') return null
+
+    // Close existing connection if any
+    if (socket) {
+      socket.close()
     }
 
-    return window.Echo
-  }
+    currentSessionId = sessionId
 
-  const joinSession = (
-    sessionId: string,
-    callbacks: {
-      onCodeUpdated?: (data: any) => void
-      onLanguageChanged?: (data: any) => void
-    }
-  ) => {
-    const echo = initEcho()
-    if (!echo) return null
+    // Build WebSocket URL
+    const wsUrl = config.public.wsUrl || 'ws://localhost:8000'
+    const url = `${wsUrl}/ws/${sessionId}`
 
-    const channel = echo.channel(`session.${sessionId}`)
+    socket = new WebSocket(url)
 
-    if (callbacks.onCodeUpdated) {
-      channel.listen('code.updated', callbacks.onCodeUpdated)
+    socket.onopen = () => {
+      console.log('WebSocket connected to session:', sessionId)
     }
 
-    if (callbacks.onLanguageChanged) {
-      channel.listen('language.changed', callbacks.onLanguageChanged)
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+
+        switch (data.event) {
+          case 'connected':
+            clientId = data.clientId
+            if (callbacks.onConnected) {
+              callbacks.onConnected(data)
+            }
+            break
+          case 'code.updated':
+            if (callbacks.onCodeUpdated) {
+              callbacks.onCodeUpdated(data)
+            }
+            break
+          case 'language.changed':
+            if (callbacks.onLanguageChanged) {
+              callbacks.onLanguageChanged(data)
+            }
+            break
+        }
+      } catch (e) {
+        console.error('Failed to parse WebSocket message:', e)
+      }
     }
 
-    return channel
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error)
+    }
+
+    socket.onclose = () => {
+      console.log('WebSocket disconnected')
+    }
+
+    return socket
   }
 
   const leaveSession = (sessionId: string) => {
-    if (window.Echo) {
-      window.Echo.leave(`session.${sessionId}`)
+    if (socket && currentSessionId === sessionId) {
+      socket.close()
+      socket = null
+      currentSessionId = null
+      clientId = null
     }
   }
 
   const disconnect = () => {
-    if (window.Echo) {
-      window.Echo.disconnect()
-      window.Echo = null
+    if (socket) {
+      socket.close()
+      socket = null
+      currentSessionId = null
+      clientId = null
     }
   }
 
   return {
-    initEcho,
     joinSession,
     leaveSession,
     disconnect,
+    getClientId,
   }
 }
