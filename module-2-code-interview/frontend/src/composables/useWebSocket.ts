@@ -1,3 +1,5 @@
+import { config } from '@/config'
+
 interface WebSocketCallbacks {
   onCodeUpdated?: (data: { sessionId: string; code: string; timestamp: string }) => void
   onLanguageChanged?: (data: { sessionId: string; language: string; timestamp: string }) => void
@@ -5,8 +7,6 @@ interface WebSocketCallbacks {
 }
 
 export const useWebSocket = () => {
-  const config = useRuntimeConfig()
-
   let socket: WebSocket | null = null
   let clientId: string | null = null
   let currentSessionId: string | null = null
@@ -24,7 +24,7 @@ export const useWebSocket = () => {
     currentSessionId = sessionId
 
     // Build WebSocket URL
-    const wsUrl = config.public.wsUrl || 'ws://localhost:8000'
+    const wsUrl = config.wsUrl || 'ws://localhost:8000'
     const url = `${wsUrl}/ws/${sessionId}`
 
     socket = new WebSocket(url)

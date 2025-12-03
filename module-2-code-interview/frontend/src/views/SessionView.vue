@@ -99,11 +99,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { api } from '@/api'
+import { useWebSocket } from '@/composables/useWebSocket'
+import { executeCode } from '@/composables/useCodeExecution'
+import CodeEditor from '@/components/CodeEditor.vue'
 
 const route = useRoute()
-const api = useApi()
 const ws = useWebSocket()
-const codeExecution = useCodeExecution()
 
 const sessionId = ref(route.params.id as string)
 const code = ref('')
@@ -117,7 +120,7 @@ const copied = ref(false)
 const clientId = ref<string | null>(null)
 
 let wsConnection: WebSocket | null = null
-let updateTimeout: NodeJS.Timeout | null = null
+let updateTimeout: ReturnType<typeof setTimeout> | null = null
 
 onMounted(async () => {
   try {
@@ -183,7 +186,7 @@ const runCode = async () => {
   error.value = ''
 
   try {
-    const result = await codeExecution.executeCode(code.value, selectedLanguage.value)
+    const result = await executeCode(code.value, selectedLanguage.value)
     output.value = result.output
     error.value = result.error || ''
   } catch (err: any) {
