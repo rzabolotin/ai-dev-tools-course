@@ -30,53 +30,6 @@ jobs:
               - 'module-2-code-interview/docker-compose.yml'
               - 'module-2-code-interview/Makefile'
 
-  # Super-linter for annotations (visual feedback in PR)
-  super-lint:
-    name: Code Annotations
-    runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true'
-
-    permissions:
-      contents: read
-      packages: read
-      statuses: write
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run Super-Linter
-        uses: super-linter/super-linter@v7
-        env:
-          DEFAULT_BRANCH: master
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: false
-
-          # Python
-          VALIDATE_PYTHON_FLAKE8: ${{ needs.detect-changes.outputs.backend == 'true' }}
-          VALIDATE_PYTHON_BLACK: ${{ needs.detect-changes.outputs.backend == 'true' }}
-          VALIDATE_PYTHON_ISORT: ${{ needs.detect-changes.outputs.backend == 'true' }}
-          VALIDATE_PYTHON_MYPY: ${{ needs.detect-changes.outputs.backend == 'true' }}
-
-          # TypeScript/JavaScript
-          VALIDATE_TYPESCRIPT_ES: ${{ needs.detect-changes.outputs.frontend == 'true' }}
-          VALIDATE_JAVASCRIPT_ES: ${{ needs.detect-changes.outputs.frontend == 'true' }}
-
-          # Configs
-          PYTHON_FLAKE8_CONFIG_FILE: module-2-code-interview/backend_fastapi/.flake8
-          PYTHON_BLACK_CONFIG_FILE: module-2-code-interview/backend_fastapi/pyproject.toml
-          PYTHON_ISORT_CONFIG_FILE: module-2-code-interview/backend_fastapi/pyproject.toml
-          PYTHON_MYPY_CONFIG_FILE: module-2-code-interview/backend_fastapi/pyproject.toml
-          TYPESCRIPT_ES_CONFIG_FILE: module-2-code-interview/frontend/.eslintrc.cjs
-          JAVASCRIPT_ES_CONFIG_FILE: module-2-code-interview/frontend/.eslintrc.cjs
-
-          # Only check module-2
-          FILTER_REGEX_INCLUDE: .*module-2-code-interview/.*
-          FILTER_REGEX_EXCLUDE: .*/node_modules/.*|.*/__pycache__/.*|.*/dist/.*
-
   # Backend linting
   lint-backend:
     name: Lint Backend
@@ -222,17 +175,13 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [detect-changes, super-lint, lint-backend, lint-frontend, test-backend, test-frontend]
+    needs: [detect-changes, lint-backend, lint-frontend, test-backend, test-frontend]
     if: always()
 
     steps:
       - name: Check All Jobs
         run: |
           # Check if any required job failed
-          if [[ "${{ needs.super-lint.result }}" == "failure" ]]; then
-            echo "❌ Code annotations (super-linter) failed"
-            exit 1
-          fi
 
           if [[ "${{ needs.lint-backend.result }}" == "failure" ]]; then
             echo "❌ Backend linting failed"
