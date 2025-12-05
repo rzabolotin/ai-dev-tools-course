@@ -1,7 +1,6 @@
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
-import json
 
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
