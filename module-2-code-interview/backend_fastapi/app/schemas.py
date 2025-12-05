@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 SUPPORTED_LANGUAGES = ["javascript", "typescript", "python", "java", "cpp", "go", "rust", "php"]
@@ -20,15 +20,14 @@ class SessionCreate(BaseModel):
 
 
 class SessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     session_id: str
     code: Optional[str]
     language: str
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class CodeUpdate(BaseModel):

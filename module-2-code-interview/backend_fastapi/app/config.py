@@ -1,11 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "mysql+aiomysql://root:secret@db:3306/code_interview"
+    model_config = SettingsConfigDict(env_file=".env")
 
-    class Config:
-        env_file = ".env"
+    database_url: str = "mysql+aiomysql://root:secret@db:3306/code_interview"
 
 
 settings = Settings()
