@@ -65,7 +65,7 @@ describe('API Module', () => {
     })
 
     it('should throw error on failed request', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 500,
       })
@@ -104,7 +104,7 @@ describe('API Module', () => {
     })
 
     it('should throw error when session not found', async () => {
-      ;(global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 404,
       })

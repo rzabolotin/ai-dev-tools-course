@@ -1,6 +1,7 @@
-from fastapi import WebSocket
-from typing import Dict, List
 import json
+from typing import Dict, List
+
+from fastapi import WebSocket
 
 
 class ConnectionManager:
@@ -19,13 +20,14 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket, session_id: str):
         if session_id in self.active_connections:
             self.active_connections[session_id] = [
-                (ws, cid) for ws, cid in self.active_connections[session_id]
-                if ws != websocket
+                (ws, cid) for ws, cid in self.active_connections[session_id] if ws != websocket
             ]
             if not self.active_connections[session_id]:
                 del self.active_connections[session_id]
 
-    async def broadcast_to_session(self, session_id: str, message: dict, exclude_client_id: str = None):
+    async def broadcast_to_session(
+        self, session_id: str, message: dict, exclude_client_id: str = None
+    ):
         """Broadcast message to all clients in a session, optionally excluding the sender."""
         if session_id not in self.active_connections:
             return

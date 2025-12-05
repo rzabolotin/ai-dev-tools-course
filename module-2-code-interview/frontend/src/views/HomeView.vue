@@ -32,14 +32,30 @@
                 v-model="selectedLanguage"
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="javascript">JavaScript</option>
-                <option value="typescript">TypeScript</option>
-                <option value="python">Python</option>
-                <option value="java">Java</option>
-                <option value="cpp">C++</option>
-                <option value="go">Go</option>
-                <option value="rust">Rust</option>
-                <option value="php">PHP</option>
+                <option value="javascript">
+                  JavaScript
+                </option>
+                <option value="typescript">
+                  TypeScript
+                </option>
+                <option value="python">
+                  Python
+                </option>
+                <option value="java">
+                  Java
+                </option>
+                <option value="cpp">
+                  C++
+                </option>
+                <option value="go">
+                  Go
+                </option>
+                <option value="rust">
+                  Rust
+                </option>
+                <option value="php">
+                  PHP
+                </option>
               </select>
             </div>
 
@@ -53,14 +69,14 @@
                 rows="6"
                 placeholder="// Write your starter code here..."
                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              ></textarea>
+              />
             </div>
 
             <!-- Create Button -->
             <button
-              @click="createNewSession"
               :disabled="creating"
               class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 px-6 rounded-lg transition-colors text-lg"
+              @click="createNewSession"
             >
               {{ creating ? 'Creating...' : 'Create Interview Session' }}
             </button>
@@ -69,7 +85,7 @@
           <!-- Divider -->
           <div class="relative">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-300"></div>
+              <div class="w-full border-t border-gray-300" />
             </div>
             <div class="relative flex justify-center text-sm">
               <span class="px-4 bg-white text-gray-500">or</span>
@@ -88,11 +104,11 @@
                 placeholder="Enter session ID"
                 class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 @keyup.enter="joinSession"
-              />
+              >
               <button
-                @click="joinSession"
                 :disabled="!joinSessionId"
                 class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold px-6 rounded-lg transition-colors"
+                @click="joinSession"
               >
                 Join
               </button>
@@ -100,7 +116,10 @@
           </div>
 
           <!-- Error Message -->
-          <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div
+            v-if="errorMessage"
+            class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"
+          >
             {{ errorMessage }}
           </div>
         </div>
@@ -109,19 +128,37 @@
       <!-- Features -->
       <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
         <div class="text-white">
-          <div class="text-3xl mb-2">⚡</div>
-          <div class="font-semibold mb-1">Real-time Sync</div>
-          <div class="text-sm text-gray-400">See changes instantly</div>
+          <div class="text-3xl mb-2">
+            ⚡
+          </div>
+          <div class="font-semibold mb-1">
+            Real-time Sync
+          </div>
+          <div class="text-sm text-gray-400">
+            See changes instantly
+          </div>
         </div>
         <div class="text-white">
-          <div class="text-3xl mb-2">🎨</div>
-          <div class="font-semibold mb-1">Syntax Highlighting</div>
-          <div class="text-sm text-gray-400">8+ languages supported</div>
+          <div class="text-3xl mb-2">
+            🎨
+          </div>
+          <div class="font-semibold mb-1">
+            Syntax Highlighting
+          </div>
+          <div class="text-sm text-gray-400">
+            8+ languages supported
+          </div>
         </div>
         <div class="text-white">
-          <div class="text-3xl mb-2">▶️</div>
-          <div class="font-semibold mb-1">Run Code</div>
-          <div class="text-sm text-gray-400">Execute in browser</div>
+          <div class="text-3xl mb-2">
+            ▶️
+          </div>
+          <div class="font-semibold mb-1">
+            Run Code
+          </div>
+          <div class="text-sm text-gray-400">
+            Execute in browser
+          </div>
         </div>
       </div>
     </div>

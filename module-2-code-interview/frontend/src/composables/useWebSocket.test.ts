@@ -136,7 +136,7 @@ describe('useWebSocket', () => {
 
     it('should return null in server-side rendering context', () => {
       const originalWindow = global.window
-      // @ts-ignore
+      // @ts-expect-error - Testing SSR context where window is undefined
       delete global.window
 
       const { joinSession } = useWebSocket()

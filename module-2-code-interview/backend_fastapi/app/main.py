@@ -1,21 +1,21 @@
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
-import uuid
 
-from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .database import get_db, init_db
 from .models import InterviewSession
 from .schemas import (
-    SessionCreate,
-    SessionResponse,
     CodeUpdate,
-    LanguageUpdate,
     CodeUpdatedEvent,
     LanguageChangedEvent,
+    LanguageUpdate,
+    SessionCreate,
+    SessionResponse,
 )
 from .websocket_manager import manager
 
@@ -43,10 +43,7 @@ app.add_middleware(
 # Create session
 @app.post("/api/sessions", response_model=SessionResponse, status_code=201)
 async def create_session(data: SessionCreate, db: AsyncSession = Depends(get_db)):
-    session = InterviewSession(
-        language=data.language or "javascript",
-        code=data.code or ""
-    )
+    session = InterviewSession(language=data.language or "javascript", code=data.code or "")
     db.add(session)
     await db.commit()
     await db.refresh(session)
@@ -71,7 +68,7 @@ async def update_code(
     session_id: str,
     data: CodeUpdate,
     client_id: str = Query(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(InterviewSession).where(InterviewSession.session_id == session_id)
@@ -80,16 +77,14 @@ async def update_code(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session.code = data.code
-    session.updated_at = datetime.utcnow()
+    session.code = data.code  # type: ignore
+    session.updated_at = datetime.utcnow()  # type: ignore
     await db.commit()
     await db.refresh(session)
 
     # Broadcast to other clients
     event = CodeUpdatedEvent(
-        sessionId=session_id,
-        code=data.code,
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        sessionId=session_id, code=data.code, timestamp=datetime.utcnow().isoformat() + "Z"
     )
     await manager.broadcast_to_session(session_id, event.model_dump(), exclude_client_id=client_id)
 
@@ -102,7 +97,7 @@ async def update_language(
     session_id: str,
     data: LanguageUpdate,
     client_id: str = Query(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(InterviewSession).where(InterviewSession.session_id == session_id)
@@ -111,16 +106,14 @@ async def update_language(
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session.language = data.language
-    session.updated_at = datetime.utcnow()
+    session.language = data.language  # type: ignore
+    session.updated_at = datetime.utcnow()  # type: ignore
     await db.commit()
     await db.refresh(session)
 
     # Broadcast to other clients
     event = LanguageChangedEvent(
-        sessionId=session_id,
-        language=data.language,
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        sessionId=session_id, language=data.language, timestamp=datetime.utcnow().isoformat() + "Z"
     )
     await manager.broadcast_to_session(session_id, event.model_dump(), exclude_client_id=client_id)
 
@@ -142,7 +135,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, client_id: s
     try:
         while True:
             # Keep connection alive, handle incoming messages if needed
-            data = await websocket.receive_text()
+            _ = await websocket.receive_text()
             # Could handle client-side events here if needed
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id)

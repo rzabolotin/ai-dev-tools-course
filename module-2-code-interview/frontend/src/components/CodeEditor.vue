@@ -1,5 +1,8 @@
 <template>
-  <div ref="editorContainer" class="codemirror-wrapper"></div>
+  <div
+    ref="editorContainer"
+    class="codemirror-wrapper"
+  />
 </template>
 
 <script setup lang="ts">

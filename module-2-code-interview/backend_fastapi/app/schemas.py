@@ -3,7 +3,6 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-
 SUPPORTED_LANGUAGES = ["javascript", "typescript", "python", "java", "cpp", "go", "rust", "php"]
 
 
