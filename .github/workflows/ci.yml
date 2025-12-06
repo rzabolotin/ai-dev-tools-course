@@ -113,18 +113,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Create .env file
-        run: |
-          echo "DATABASE_URL=mysql+aiomysql://root:secret@db:3306/code_interview" > backend_fastapi/.env
-
-      - name: Start Services
-        run: docker compose up -d db backend
-
-      - name: Wait for Services
-        run: |
-          echo "Waiting for services to be healthy..."
-          timeout 60 bash -c 'until docker compose ps | grep -q "healthy"; do sleep 2; done'
-          sleep 5
+      - name: Start Backend Service
+        run: docker compose up -d backend
 
       - name: Run Backend Tests
         run: make backend_tests
