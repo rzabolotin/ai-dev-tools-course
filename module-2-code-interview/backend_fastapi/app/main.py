@@ -1,9 +1,13 @@
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -139,3 +143,33 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str, client_id: s
             # Could handle client-side events here if needed
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id)
+
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "code-interview-api"}
+
+
+# Mount static files (production only - serves Vue SPA)
+# This must be LAST, after all API routes
+if os.path.exists("static"):
+    # Mount static assets (js, css, images, etc.)
+    app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+
+    # SPA fallback: serve index.html for all other routes (Vue Router)
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """
+        Catch-all route for SPA.
+        Serves static files if they exist, otherwise returns index.html
+        This allows Vue Router to handle client-side routing.
+        """
+        static_path = Path("static") / full_path
+
+        # If exact file exists, serve it
+        if static_path.is_file():
+            return FileResponse(static_path)
+
+        # Otherwise, serve index.html (SPA fallback)
+        return FileResponse("static/index.html")

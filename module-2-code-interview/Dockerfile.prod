@@ -1,0 +1,55 @@
+# ==========================================
+# Stage 1: Build Frontend (Vue 3 + Vite)
+# ==========================================
+FROM node:20-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# Copy package files and install dependencies
+COPY frontend/package*.json ./
+RUN npm ci --prefer-offline --no-audit
+
+# Copy frontend source code
+COPY frontend/ ./
+
+# Build for production (generates dist/)
+# Using build:prod to skip type checking (vue-tsc compatibility issues)
+RUN npm run build:prod
+
+# ==========================================
+# Stage 2: Production Backend + Static Files
+# ==========================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies (if needed for MySQL connector)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY backend_fastapi/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Copy backend application code
+COPY backend_fastapi/app ./app
+
+# Copy built frontend static files from Vite build
+# Vite generates static files in dist/
+COPY --from=frontend-build /app/frontend/dist ./static
+
+# Create non-root user for security
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+# Run with uvicorn (production-ready ASGI server)
+# Use --workers for multi-process if needed
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
