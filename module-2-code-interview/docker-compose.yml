@@ -12,7 +12,8 @@ services:
     environment:
       - DATABASE_URL=mysql+aiomysql://root:secret@db:3306/code_interview
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - code_interview_network
 
@@ -48,6 +49,12 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - code_interview_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
 volumes:
   db_data:
