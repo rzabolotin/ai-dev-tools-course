@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Real-time collaborative coding interview platform built as a Docker-first monorepo with FastAPI backend and Nuxt 3 frontend. Core feature: Multiple users can edit code simultaneously with WebSocket synchronization.
+Real-time collaborative coding interview platform built as a Docker-first monorepo with FastAPI backend and Vue 3 + Vite frontend. Core feature: Multiple users can edit code simultaneously with WebSocket synchronization.
 
 ## Common Commands
 
@@ -28,8 +28,8 @@ docker-compose logs -f frontend
 
 # Access container shells
 docker-compose exec backend bash       # FastAPI container
-docker-compose exec frontend sh        # Nuxt container
-docker-compose exec db mysql -u root -p
+docker-compose exec frontend sh        # Vue container
+docker-compose exec db mysql -u root -p root
 ```
 
 ### Backend (FastAPI)
@@ -43,9 +43,16 @@ docker-compose exec db mysql -u root -p
 
 # Install dependencies
 docker-compose exec backend pip install package-name
+
+# Run tests
+docker-compose exec backend pytest
+
+# Linting and type checking
+docker-compose exec backend flake8 app/
+docker-compose exec backend mypy app/
 ```
 
-### Frontend (Nuxt)
+### Frontend (Vue 3 + Vite)
 
 ```bash
 # Install dependencies
@@ -54,11 +61,18 @@ docker-compose exec frontend npm install package-name
 
 # Build for production
 docker-compose exec frontend npm run build
+
+# Run tests
+docker-compose exec frontend npm run test
+
+# Linting and formatting
+docker-compose exec frontend npm run lint
+docker-compose exec frontend npm run format
 ```
 
 ### Ports
 
-- **3000**: Nuxt frontend
+- **3000**: Vue 3 frontend (Vite dev server)
 - **8000**: FastAPI (HTTP + WebSocket on same port)
 - **3306**: MySQL
 
@@ -79,9 +93,9 @@ HTTP Request → FastAPI Router → SQLAlchemy → MySQL
 ### Frontend Data Flow
 
 ```
-User edits → Monaco Editor → Debounced (500ms) → API call → Backend
-                                                               ↓
-Other users ← Monaco update ← WebSocket message ← FastAPI WebSocket
+User edits → CodeMirror Editor → API call → Backend
+                                               ↓
+Other users ← CodeMirror update ← WebSocket message ← FastAPI WebSocket
 ```
 
 ### Key Backend Files
@@ -90,29 +104,26 @@ Other users ← Monaco update ← WebSocket message ← FastAPI WebSocket
 - FastAPI application with lifespan for DB initialization
 - All REST endpoints and WebSocket endpoint
 - CORS middleware configured
+- Production: Serves static Vue SPA files from `/static` directory
 
 **Models** (`backend_fastapi/app/models.py`):
 - `InterviewSession` - SQLAlchemy model
 - Fields: `id`, `session_id` (16-char unique), `code`, `language`, timestamps
-- `session_id` auto-generated on creation
+- `session_id` auto-generated on creation using `secrets.token_urlsafe`
 
 **Schemas** (`backend_fastapi/app/schemas.py`):
 - Pydantic models for request/response validation
-- `SUPPORTED_LANGUAGES` list for validation
-- WebSocket event schemas
+- `SUPPORTED_LANGUAGES` list: `javascript`, `typescript`, `python`, `java`, `cpp`, `go`, `rust`, `php`
+- WebSocket event schemas: `CodeUpdatedEvent`, `LanguageChangedEvent`
 
 **WebSocket Manager** (`backend_fastapi/app/websocket_manager.py`):
 - `ConnectionManager` class for managing WebSocket connections
-- `broadcast_to_session()` - sends to all clients except sender
-- Tracks connections by session_id and client_id
+- `broadcast_to_session()` - sends to all clients except sender (prevents echo)
+- Tracks connections by session_id and client_id in memory
 
 **Database** (`backend_fastapi/app/database.py`):
 - Async SQLAlchemy setup with aiomysql
 - `init_db()` creates tables on startup
-
-**Config** (`backend_fastapi/app/config.py`):
-- Pydantic settings from environment variables
-- `DATABASE_URL` configuration
 
 **API Routes**:
 ```
@@ -126,27 +137,30 @@ WS     /ws/{session_id}?client_id=xxx   - WebSocket connection
 
 ### Key Frontend Files
 
-**Pages** (`frontend/pages/`):
-- `index.vue` - Landing page with create/join UI
-- `session/[id].vue` - Main editor page with WebSocket integration
+**Views** (`frontend/src/views/`):
+- `HomeView.vue` - Landing page with create/join UI
+- `SessionView.vue` - Main editor page with WebSocket integration
 
-**Components** (`frontend/components/CodeEditor.vue`):
-- Monaco Editor wrapper with 8 language support
-- Props: `modelValue` (code), `language`
-- Emits: `update:modelValue`, `update:language`
+**Components** (`frontend/src/components/CodeEditor.vue`):
+- CodeMirror 6 editor with 8 language support
+- Props: `modelValue` (code), `language`, `readOnly`
+- Emits: `update:modelValue`
+- Uses Compartment API for dynamic language switching
 
-**Composables**:
-- `useApi.ts` - API client wrapper with clientId support
-- `useWebSocket.ts` - Native WebSocket integration (no Laravel Echo)
+**Composables** (`frontend/src/composables/`):
+- `useWebSocket.ts` - Native WebSocket integration
   - `joinSession(sessionId, callbacks)` - Connects to `ws://host/ws/{sessionId}`
   - `getClientId()` - Returns client ID assigned by server
   - Events: `connected`, `code.updated`, `language.changed`
-- `useCodeExecution.ts` - Browser-based code execution
+- `useCodeExecution.ts` - Browser-based code execution (JavaScript/TypeScript only)
 
-**API Layer** (`frontend/api/`):
-- `BaseApi.ts` - Abstract HTTP client using `ofetch`
-- `SessionsApi.ts` - Session-specific endpoints with clientId support
-- `types.ts` - TypeScript interfaces
+**API Layer** (`frontend/src/api.ts`):
+- Simple `fetch`-based API client
+- Functions: `createSession`, `getSession`, `updateCode`, `updateLanguage`
+- Automatically includes `client_id` query parameter to prevent echo
+
+**Router** (`frontend/src/router.ts`):
+- Vue Router with two routes: `/` (home) and `/session/:id` (editor)
 
 ### Real-time Synchronization Pattern
 
@@ -189,20 +203,24 @@ User opens session page
 
 ### Configuration
 
-**Backend** (environment variables):
+**Backend** (environment variables in docker-compose.yml):
 - `DATABASE_URL=mysql+aiomysql://root:secret@db:3306/code_interview`
 
-**Frontend** (`nuxt.config.ts`):
-- `runtimeConfig.public.apiBase` - Backend API URL (default: http://localhost:8000)
-- `runtimeConfig.public.wsUrl` - WebSocket URL (default: ws://localhost:8000)
-- Note: Both HTTP and WebSocket use the same port now!
+**Frontend** (`frontend/src/config.ts`):
+- Development: Uses `VITE_API_BASE` and `VITE_WS_URL` env vars
+- Production: Auto-detects same origin for API, builds WebSocket URL from window.location
+- Note: Both HTTP and WebSocket use the same port (8000)!
+
+**Vite Config** (`frontend/vite.config.ts`):
+- `@` alias points to `src/` directory
+- Dev server runs on port 3000 with host `0.0.0.0` (accessible from Docker)
 
 ### Docker Services
 
 ```yaml
 services:
   backend:    # FastAPI + Uvicorn (HTTP + WebSocket, port 8000)
-  frontend:   # Nuxt 3 (port 3000)
+  frontend:   # Vue 3 + Vite (port 3000)
   db:         # MySQL 8.0 (port 3306)
 ```
 
@@ -210,39 +228,54 @@ No Redis needed - WebSocket connections managed in-memory.
 
 ### Supported Languages
 
-Monaco Editor supports 8 languages:
+CodeMirror 6 supports 8 languages:
 - `javascript`, `typescript`, `python`, `java`, `cpp`, `go`, `rust`, `php`
 
 Code execution:
-- **JavaScript**: Full execution with console capture
-- **TypeScript**: Transpiled to JS, then executed
+- **JavaScript**: Full execution with console capture using `Function()` constructor
+- **TypeScript**: Transpiled to JS with basic parser, then executed
 - **Others**: Syntax highlighting only (no execution)
 
 ### Important Notes
 
 1. **Single Port for HTTP + WebSocket**: FastAPI serves both on port 8000. No separate WebSocket server needed.
 
-2. **Client ID Pattern**: Each WebSocket client gets a unique ID. Pass it in API calls to prevent echo.
+2. **Client ID Pattern**: Each WebSocket client gets a unique ID on connection. Pass it in API calls with `?client_id=xxx` to prevent echo (sender won't receive their own changes).
 
 3. **No Authentication**: Sessions are public. Anyone with session ID can join.
 
 4. **Auto Table Creation**: SQLAlchemy creates tables on app startup via `init_db()`.
 
-5. **Hot Reload**: Both backend (uvicorn --reload) and frontend (Nuxt HMR) support hot reload.
+5. **Hot Reload**: Both backend (uvicorn --reload) and frontend (Vite HMR) support hot reload.
 
-6. **Native WebSocket**: Frontend uses browser's native WebSocket API, no Laravel Echo or Pusher.
+6. **Native WebSocket**: Frontend uses browser's native WebSocket API directly.
 
-7. **Database Health Check**: Backend waits for MySQL to be healthy before starting.
+7. **Production Build**: Uses multi-stage Dockerfile (`Dockerfile.prod`) that builds Vue frontend and serves it via FastAPI backend. See DEPLOYMENT.md for testing and deployment instructions.
 
 ### Development Workflow
 
 1. Code changes in backend: Uvicorn auto-reloads
-2. Code changes in frontend: Nuxt HMR
+2. Code changes in frontend: Vite HMR
 3. Database changes: Update models.py, restart backend (tables auto-created)
 4. Dependency changes: Rebuild containers or exec into them
 
+### Testing
+
+- **Backend**: pytest with test files in `backend_fastapi/tests/`
+- **Frontend**: vitest with test files alongside source (e.g., `*.test.ts`)
+- **Linting**: flake8 + mypy for backend, ESLint for frontend
+
+### Production Deployment
+
+- Multi-stage Docker build (`Dockerfile.prod`)
+- Stage 1: Build Vue 3 frontend with Vite (generates `dist/`)
+- Stage 2: Copy backend + built frontend to Python image
+- FastAPI serves static files from `/static` directory
+- See DEPLOYMENT.md for local testing and Railway deployment instructions
+
 ### Common Pitfalls
 
-- **Missing client_id**: Without it, sender receives their own changes (echo)
-- **WebSocket URL**: Must be `ws://` not `http://`, same port as API
-- **MySQL startup**: Backend waits for db healthcheck before starting
+- **Missing client_id**: Without it, sender receives their own changes (echo effect)
+- **WebSocket URL**: Must be `ws://` not `http://`, same port as API (8000)
+- **MySQL password**: Use `secret` for root password (defined in docker-compose.yml)
+- **Frontend env vars**: Use `VITE_API_BASE` and `VITE_WS_URL` (Vite prefix required)
