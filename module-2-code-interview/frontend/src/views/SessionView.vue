@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold text-white">
-            Code Interview Session
+            Code Interview Session (Demo project)
           </h1>
           <p class="text-sm text-gray-400 mt-1">
             Session ID: <span class="font-mono text-blue-400">{{ sessionId }}</span>
