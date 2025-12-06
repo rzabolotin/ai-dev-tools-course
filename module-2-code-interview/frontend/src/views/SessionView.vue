@@ -4,7 +4,7 @@
     <div class="bg-gray-800 border-b border-gray-700 px-6 py-4">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold text-white">Code Interview Session (Demo project) </h1>
+          <h1 class="text-xl font-bold text-white">Code Interview Session (Demo project)</h1>
           <p class="text-sm text-gray-400 mt-1">
             Session ID: <span class="font-mono text-blue-400">{{ sessionId }}</span>
           </p>
@@ -64,6 +64,12 @@
           >
             {{ executing ? 'Running...' : 'Run Code' }}
           </button>
+          <div
+            v-if="selectedLanguage === 'python' && executing && !output && !error"
+            class="mt-2 text-xs text-gray-400 text-center"
+          >
+            First run may take a few seconds to load Python interpreter...
+          </div>
         </div>
 
         <!-- Output Display -->

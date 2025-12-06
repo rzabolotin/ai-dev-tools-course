@@ -12,10 +12,9 @@ The app should be able to do the following:
 - Execute code safely in the browser
 - You can choose any technologies you want. For example:
 
-Frontend: Nuxt/vue3
-Backend: PHP laravel
+Frontend: Vue3
+Backend: FastAPI
 
-i have no php composer installed locally, and I don't want to have
 let's do it originally from docker environment
 
 Also I need to have openapi.yaml (api specification, and both frontend and backend should follow it)

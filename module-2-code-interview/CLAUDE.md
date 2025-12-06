@@ -152,7 +152,10 @@ WS     /ws/{session_id}?client_id=xxx   - WebSocket connection
   - `joinSession(sessionId, callbacks)` - Connects to `ws://host/ws/{sessionId}`
   - `getClientId()` - Returns client ID assigned by server
   - Events: `connected`, `code.updated`, `language.changed`
-- `useCodeExecution.ts` - Browser-based code execution (JavaScript/TypeScript only)
+- `useCodeExecution.ts` - Browser-based code execution
+  - JavaScript/TypeScript: Native execution with console capture
+  - Python: Via Pyodide (WebAssembly). Lazy-loads interpreter (~6MB, cached after first load)
+  - Captures stdout/stderr and return values for all supported languages
 
 **API Layer** (`frontend/src/api.ts`):
 - Simple `fetch`-based API client
@@ -234,6 +237,7 @@ CodeMirror 6 supports 8 languages:
 Code execution:
 - **JavaScript**: Full execution with console capture using `Function()` constructor
 - **TypeScript**: Transpiled to JS with basic parser, then executed
+- **Python**: Full execution via Pyodide (Python compiled to WebAssembly). First run loads ~6MB interpreter from CDN, subsequent runs are instant. Supports print(), standard library, and most Python features.
 - **Others**: Syntax highlighting only (no execution)
 
 ### Important Notes

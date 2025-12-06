@@ -6,7 +6,7 @@ Real-time collaborative coding interview platform with WebSocket synchronization
 
 - **Real-time Collaboration:** Multiple users see code changes instantly via WebSocket
 - **8 Languages Supported:** JavaScript, TypeScript, Python, Java, C++, Go, Rust, PHP
-- **Code Execution:** Run JavaScript/TypeScript in browser with console output
+- **Code Execution:** Run JavaScript/TypeScript/Python in browser with console output
 - **Modern Stack:** FastAPI backend + Vue 3 frontend + MySQL database
 - **Docker-First:** Easy development setup with docker-compose
 
@@ -154,6 +154,7 @@ User 1 Browser                    User 2 Browser
 
 - **JavaScript:** Executed in browser using `Function()` constructor
 - **TypeScript:** Transpiled to JS using lightweight parser, then executed
+- **Python:** Executed via Pyodide (WebAssembly). First run loads ~6MB interpreter, subsequent runs are instant
 - **Other languages:** Syntax highlighting only (no execution)
 
-Console output captured via custom `console.log` override.
+Console output captured via custom `console.log` override (JS/TS) or stdout redirection (Python).

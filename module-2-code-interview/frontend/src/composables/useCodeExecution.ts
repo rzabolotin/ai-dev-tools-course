@@ -1,3 +1,48 @@
+// Pyodide type definition
+interface PyodideInterface {
+  runPythonAsync: (code: string) => Promise<unknown>;
+}
+
+// Pyodide singleton instance
+let pyodideInstance: PyodideInterface | null = null;
+let pyodideLoading: Promise<PyodideInterface> | null = null;
+
+async function loadPyodide(): Promise<PyodideInterface> {
+  if (pyodideInstance) {
+    return pyodideInstance;
+  }
+
+  if (pyodideLoading) {
+    return pyodideLoading;
+  }
+
+  pyodideLoading = (async () => {
+    try {
+      // Load Pyodide from CDN
+      const pyodideScript = document.createElement('script');
+      pyodideScript.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+
+      await new Promise((resolve, reject) => {
+        pyodideScript.onload = resolve;
+        pyodideScript.onerror = reject;
+        document.head.appendChild(pyodideScript);
+      });
+
+      // @ts-expect-error - Pyodide is loaded globally from CDN script
+      pyodideInstance = await window.loadPyodide({
+        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+      });
+
+      return pyodideInstance as PyodideInterface;
+    } catch (error) {
+      pyodideLoading = null;
+      throw error;
+    }
+  })();
+
+  return pyodideLoading;
+}
+
 export async function executeCode(
   code: string,
   language: string
@@ -7,16 +52,78 @@ export async function executeCode(
   }
 
   if (language === 'python') {
-    return {
-      output: 'Python execution is not yet implemented.',
-      error: null,
-    };
+    return executePython(code);
   }
 
   return {
     output: '',
     error: `Execution for ${language} is not supported yet.`,
   };
+}
+
+async function executePython(code: string): Promise<{ output: string; error: string | null }> {
+  try {
+    const pyodide = await loadPyodide();
+
+    // Capture stdout
+    const capturedOutput: string[] = [];
+
+    // Redirect Python stdout to capture prints
+    await pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+
+sys.stdout = StringIO()
+sys.stderr = StringIO()
+`);
+
+    // Execute the user code
+    let result;
+    try {
+      result = await pyodide.runPythonAsync(code);
+    } catch (execError: any) {
+      // Get stderr output
+      const stderr = await pyodide.runPythonAsync('sys.stderr.getvalue()');
+      return {
+        output: '',
+        error: stderr || execError.message || 'Python execution error',
+      };
+    }
+
+    // Get stdout output
+    const stdout = await pyodide.runPythonAsync('sys.stdout.getvalue()');
+
+    if (stdout) {
+      capturedOutput.push(stdout);
+    }
+
+    // If there's a return value (not None), add it to output
+    if (result !== undefined && result !== null) {
+      capturedOutput.push(String(result));
+    }
+
+    // Reset stdout/stderr for next execution
+    await pyodide.runPythonAsync(`
+sys.stdout = StringIO()
+sys.stderr = StringIO()
+`);
+
+    return {
+      output: capturedOutput.join('\n') || 'Code executed (no output)',
+      error: null,
+    };
+  } catch (error: any) {
+    if (error.message && error.message.includes('loading')) {
+      return {
+        output: '',
+        error: 'Loading Python interpreter... Please try again in a moment.',
+      };
+    }
+    return {
+      output: '',
+      error: error.message || 'Failed to execute Python code',
+    };
+  }
 }
 
 function executeJavaScript(code: string): { output: string; error: string | null } {

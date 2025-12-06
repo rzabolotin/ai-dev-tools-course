@@ -128,12 +128,56 @@ describe('useCodeExecution', () => {
   });
 
   describe('Python execution', () => {
-    it('should return not implemented message for Python', async () => {
+    it('should execute Python code with Pyodide', async () => {
+      // Mock Pyodide loading
+      const mockPyodide = {
+        runPythonAsync: vi.fn()
+          .mockResolvedValueOnce(undefined) // First call: setup StringIO
+          .mockResolvedValueOnce(undefined) // Second call: execute user code
+          .mockResolvedValueOnce('Hello\n') // Third call: get stdout
+          .mockResolvedValueOnce(undefined), // Fourth call: reset stdout/stderr
+      };
+
+      // Mock window.loadPyodide
+      (global as any).window = {
+        ...global.window,
+        loadPyodide: vi.fn().mockResolvedValue(mockPyodide),
+      };
+
+      // Mock document.createElement for script loading
+      const mockScript = {
+        src: '',
+        onload: null as (() => void) | null,
+        onerror: null as (() => void) | null,
+      };
+
+      const originalCreateElement = document.createElement;
+      document.createElement = vi.fn((tagName: string) => {
+        if (tagName === 'script') {
+          // Simulate successful script load
+          setTimeout(() => {
+            if (mockScript.onload) {
+              mockScript.onload();
+            }
+          }, 0);
+          return mockScript as any;
+        }
+        return originalCreateElement.call(document, tagName);
+      });
+
+      // Mock document.head.appendChild
+      const originalAppendChild = document.head.appendChild;
+      document.head.appendChild = vi.fn().mockReturnValue(mockScript);
+
       const result = await executeCode('print("Hello")', 'python');
 
       expect(result.error).toBeNull();
-      expect(result.output).toBe('Python execution is not yet implemented.');
-    });
+      expect(result.output).toContain('Hello');
+
+      // Restore
+      document.createElement = originalCreateElement;
+      document.head.appendChild = originalAppendChild;
+    }, 10000); // Increase timeout for async operations
   });
 
   describe('Unsupported languages', () => {
