@@ -1,8 +1,13 @@
-// Pyodide singleton instance
-let pyodideInstance: any = null;
-let pyodideLoading: Promise<any> | null = null;
+// Pyodide type definition
+interface PyodideInterface {
+  runPythonAsync: (code: string) => Promise<unknown>;
+}
 
-async function loadPyodide() {
+// Pyodide singleton instance
+let pyodideInstance: PyodideInterface | null = null;
+let pyodideLoading: Promise<PyodideInterface> | null = null;
+
+async function loadPyodide(): Promise<PyodideInterface> {
   if (pyodideInstance) {
     return pyodideInstance;
   }
@@ -23,12 +28,12 @@ async function loadPyodide() {
         document.head.appendChild(pyodideScript);
       });
 
-      // @ts-ignore - Pyodide is loaded globally
+      // @ts-expect-error - Pyodide is loaded globally from CDN script
       pyodideInstance = await window.loadPyodide({
         indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
       });
 
-      return pyodideInstance;
+      return pyodideInstance as PyodideInterface;
     } catch (error) {
       pyodideLoading = null;
       throw error;
