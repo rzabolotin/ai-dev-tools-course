@@ -1,7 +1,8 @@
 import asyncio
+
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.exc import OperationalError
 
 from .config import settings
 
@@ -26,9 +27,12 @@ async def init_db():
                 await conn.run_sync(Base.metadata.create_all)
             print("Database initialized successfully")
             return
-        except OperationalError as e:
+        except OperationalError:
             if attempt < max_retries - 1:
-                print(f"Database connection attempt {attempt + 1}/{max_retries} failed. Retrying in {retry_delay}s...")
+                print(
+                    f"Database connection attempt {attempt + 1}/"
+                    f"{max_retries} failed. Retrying in {retry_delay}s..."
+                )
                 await asyncio.sleep(retry_delay)
             else:
                 print(f"Failed to connect to database after {max_retries} attempts")
